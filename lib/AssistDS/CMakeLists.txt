@@ -1,3 +1,9 @@
+set(LLVM_LINK_COMPONENTS
+  ${LLVM_TARGETS_TO_BUILD}
+  Core
+  DataStructure
+  )
+
 set(SOURCES
   ArgCast.cpp
   ArgSimplify.cpp
