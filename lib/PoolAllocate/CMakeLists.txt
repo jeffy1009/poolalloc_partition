@@ -1,8 +1,7 @@
 set(LLVM_LINK_COMPONENTS
-  ${LLVM_TARGETS_TO_BUILD}
-  Core
-  DataStructure
+  DataStructure_static
   )
+
 
 set(SOURCES
   AccessTrace.cpp
@@ -23,10 +22,7 @@ set(SOURCES
 # the Makefile-driven version functions.
 
 if( NOT WIN32 AND LLVM_ENABLE_PIC )
-  set(bsl ${BUILD_SHARED_LIBS})
-  set(BUILD_SHARED_LIBS ON)
-  add_llvm_library(poolalloc ${SOURCES})
-  set(BUILD_SHARED_LIBS ${bsl})
+  add_llvm_loadable_module(poolalloc ${SOURCES})
   set_property(TARGET poolalloc PROPERTY OUTPUT_NAME "poolalloc")
   set_property(TARGET poolalloc PROPERTY PREFIX "")
   set(PA_STATIC_TARGET poolalloc_static)
