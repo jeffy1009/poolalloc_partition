@@ -89,6 +89,7 @@ struct libAction {
 #define NRET_NNYARGS  {0,0,0,1,1,1,1,1,1,1}
 #define YRET_NNYNARGS {1,0,0,1,0,0,0,0,0,0}
 #define NRET_NNNYARGS {0,0,0,0,1,1,1,1,1,1}
+#define NRET_YYYNARGS {0,1,1,1,0,0,0,0,0,0}
 
 const struct {
   const char* name;
@@ -422,6 +423,9 @@ const struct {
   {"_ZSt4endlIcSt11char_traitsIcEERSt13basic_ostreamIT_T0_ES6_", {NRET_NARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
   // Added by Jingyue
   {"strtoll",       {NRET_YARGS, NRET_NYARGS, NRET_NYARGS, NRET_YARGS, false}},
+  {"strtol",       {NRET_YARGS, NRET_NYARGS, NRET_NYARGS, NRET_YARGS, false}},
+  {"getaddrinfo", {NRET_YYYNARGS, NRET_NNNYARGS, NRET_NNNYARGS, NRET_NARGS, false}},
+  {"freeaddrinfo",      {NRET_NARGS, NRET_NARGS, NRET_YNARGS, NRET_NARGS, false}},
   // Terminate the list of special functions recognized by this pass
   {0,            {NRET_NARGS, NRET_NARGS, NRET_NARGS, NRET_NARGS, false}},
 };
