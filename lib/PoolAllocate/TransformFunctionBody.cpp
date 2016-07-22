@@ -1035,7 +1035,7 @@ void FuncTransform::visitCallSite(CallSite& CS) {
   CallSite::arg_iterator AE = CS.arg_end();
   for ( ; FAI != E && AI != AE; ++FAI, ++AI)
     if (!isa<Constant>(*AI)) {
-      DSGraph::computeNodeMapping(CalleeGraph->getNodeForValue(FAI),
+      DSGraph::computeNodeMapping(CalleeGraph->getNodeForValue(&*FAI),
                                   getDSNodeHFor(*AI), NodeMapping, false);
     }
 
