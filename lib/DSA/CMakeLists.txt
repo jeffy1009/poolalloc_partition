@@ -1,6 +1,7 @@
 set(SOURCES
   AddressTakenAnalysis.cpp
   AllocatorIdentification.cpp
+  ArgvAnalysis.cpp
   Basic.cpp
   BottomUpClosure.cpp
   CallTargets.cpp

@@ -79,6 +79,9 @@ namespace {
     const DataLayout& TD;
     DSNodeHandle VAArrayNH;
 
+    ArgvAnalysis *ArgvAn;
+    SmallPtrSet<DSNode*, 4> ArgvDSNodes;
+
     ////////////////////////////////////////////////////////////////////////////
     // Helper functions used to implement the visitation functions...
 
@@ -145,8 +148,8 @@ namespace {
     void visitVAStartNode(DSNode* N);
 
   public:
-    GraphBuilder(Function &f, DSGraph &g, LocalDataStructures& DSi)
-      : G(g), FB(&f), DS(&DSi), TD(g.getDataLayout()), VAArrayNH(0) {
+    GraphBuilder(Function &f, DSGraph &g, LocalDataStructures& DSi, ArgvAnalysis *aa)
+      : G(g), FB(&f), DS(&DSi), TD(g.getDataLayout()), VAArrayNH(0), ArgvAn(aa) {
       // Create scalar nodes for all pointer arguments...
       for (Function::arg_iterator I = f.arg_begin(), E = f.arg_end();
            I != E; ++I) {
@@ -164,6 +167,11 @@ namespace {
           getValueDest(&*I).getNode();
 #endif
 
+          if (ArgvAn) {
+            const SmallPtrSetImpl<Value*> &ArgvValues = ArgvAn->getArgvValues();
+            if (ArgvValues.count(&*I))
+              ArgvDSNodes.insert(getValueDest(&*I).getNode());
+          }
         }
       }
 
@@ -208,7 +216,7 @@ namespace {
 
     // GraphBuilder ctor for working on the globals graph
     explicit GraphBuilder(DSGraph& g)
-      :G(g), FB(0), TD(g.getDataLayout()), VAArrayNH(0)
+      :G(g), FB(0), TD(g.getDataLayout()), VAArrayNH(0), ArgvAn(0)
     {}
 
     void mergeInGlobalInitializer(GlobalVariable *GV);
@@ -397,7 +405,8 @@ void GraphBuilder::visitLoadInst(LoadInst &LI) {
   Ptr.getNode()->growSizeForType(LI.getType(), Ptr.getOffset());
 
   if (isa<PointerType>(LI.getType()))
-    setDestTo(LI, getLink(Ptr));
+    if (!ArgvDSNodes.count(Ptr.getNode()))
+      setDestTo(LI, getLink(Ptr));
 
   // check that it is the inserted value
   if(TypeInferenceOptimize)
@@ -408,6 +417,12 @@ void GraphBuilder::visitLoadInst(LoadInst &LI) {
         return;
       }
   Ptr.getNode()->mergeTypeInfo(LI.getType(), Ptr.getOffset());
+
+  if (ArgvAn) {
+    const SmallPtrSetImpl<Value*> &ArgvValues = ArgvAn->getArgvValues();
+    if (ArgvValues.count(&LI))
+      ArgvDSNodes.insert(Ptr.getNode());
+  }
 }
 
 void GraphBuilder::visitStoreInst(StoreInst &SI) {
@@ -1444,6 +1459,7 @@ char LocalDataStructures::ID;
 bool LocalDataStructures::runOnModule(Module &M) {
   init(&M.getDataLayout());
   addrAnalysis = &getAnalysis<AddressTakenAnalysis>();
+  ArgvAnalysis *ArgvAn = &getAnalysis<ArgvAnalysis>();
 
   // First step, build the globals graph.
   {
@@ -1483,7 +1499,7 @@ bool LocalDataStructures::runOnModule(Module &M) {
   for (Module::iterator I = M.begin(), E = M.end(); I != E; ++I)
     if (!I->isDeclaration()) {
       DSGraph* G = new DSGraph(GlobalECs, getDataLayout(), *TypeSS, GlobalsGraph);
-      GraphBuilder GGB(*I, *G, *this);
+      GraphBuilder GGB(*I, *G, *this, ArgvAn);
       G->getAuxFunctionCalls() = G->getFunctionCalls();
       setDSGraph(*I, G);
       propagateUnknownFlag(G);

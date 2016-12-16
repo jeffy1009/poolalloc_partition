@@ -19,6 +19,7 @@
 #include "dsa/super_set.h"
 #include "dsa/AddressTakenAnalysis.h"
 #include "dsa/AllocatorIdentification.h"
+#include "dsa/ArgvAnalysis.h"
 
 #include "llvm/Pass.h"
 #include "llvm/IR/CallSite.h"
@@ -188,6 +189,7 @@ public:
   ///
   virtual void getAnalysisUsage(AnalysisUsage &AU) const {
     AU.addRequired<AddressTakenAnalysis>();
+    AU.addRequired<ArgvAnalysis>();
     AU.setPreservesAll();
   }
 };
