@@ -1130,6 +1130,22 @@ bool GraphBuilder::visitIntrinsic(CallSite CS, Function *F) {
   case Intrinsic::invariant_end:
     return true;
 
+  // __attribute__ ((annotation("...")))
+  case Intrinsic::ptr_annotation: {
+    // Intentionally break alias relation with possible argv array
+    // Instruction *I = CS.getInstruction();
+    // assert(I->hasOneUse());
+    // Instruction *BCI = cast<BitCastInst>(I->user_back());
+    // assert(BCI->hasOneUse());
+    // if (isa<StoreInst>(BCI->user_back()))
+    //   return true;
+
+    DSNodeHandle Ptr = getValueDest(CS.getArgument(0));
+    if (Ptr.isNull()) return true;
+    setDestTo(*(CS.getInstruction()), Ptr);
+    return true;
+  }
+
   default: {
     //ignore pointer free intrinsics
     if (!isa<PointerType>(F->getReturnType())) {
