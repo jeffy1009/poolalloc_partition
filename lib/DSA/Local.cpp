@@ -1131,6 +1131,23 @@ bool GraphBuilder::visitIntrinsic(CallSite CS, Function *F) {
     return true;
 
   // __attribute__ ((annotation("...")))
+  case Intrinsic::var_annotation: {
+    DSNodeHandle Ptr = getValueDest(CS.getArgument(0));
+    assert(!Ptr.isNull());
+
+    ConstantExpr *CE = cast<ConstantExpr>(CS.getArgument(1));
+    Constant *C = CE->stripPointerCasts();
+    assert(C->getNumOperands() == 1);
+    ConstantDataSequential *CDS = cast<ConstantDataSequential>(C->getOperand(0));
+    assert(CDS->isCString());
+    if (CDS->getAsCString().equals("sensitive"))
+      assert(0);
+
+    auto &DSNodeAttr = const_cast<DSGraph::DSNodeAttrMapTy&>(G.getDSNodeAttr());
+    DSNodeAttr[Ptr.getNode()] = CDS->getAsCString();
+    return true;
+  }
+
   case Intrinsic::ptr_annotation: {
     // Intentionally break alias relation with possible argv array
     // Instruction *I = CS.getInstruction();

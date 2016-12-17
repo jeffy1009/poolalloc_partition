@@ -258,6 +258,14 @@ void DSGraph::cloneInto( DSGraph* G, unsigned CloneFlags) {
                    DSNodeHandle(MappedVarArgN,
                                 MappedVarArg.getOffset()+VarArg.getOffset())));
   }
+
+  // Copy DSNode attribute to new DSNodes
+  for (auto It : G->getDSNodeAttr()) {
+    const DSNode *N = It.first;
+    DSNodeHandle &NH = OldNodeMap[N];
+    assert(!NH.isNull());
+    DSNodeAttr[NH.getNode()] = It.second;
+  }
 }
 
 /// spliceFrom - Logically perform the operation of cloning the RHS graph into
@@ -1475,7 +1483,8 @@ void DSGraph::updateFromGlobalGraph() {
 //  false - The function F cannot be called by the call site.
 //
 bool
-llvm::functionIsCallable (ImmutableCallSite CS, const Function* F) {
+llvm::functionIsCallable (ImmutableCallSite CS, const Function* F,
+                          const DSGraph *G) {
   //Which targets do we choose?
   //Conservative: all of them
   //Pretty Safe: same calling convention, otherwise undefined behavior
@@ -1541,6 +1550,29 @@ llvm::functionIsCallable (ImmutableCallSite CS, const Function* F) {
     }
   }
 
+  const Value *IndF = CS.getCalledValue();
+  // TODO: there are some cases where CS is not actually in the current function.
+  // Then we cannot find a node for the value in this DSGraph.
+  // CS is put into AuxFunctionCalls when callees are inlined.
+  // Find out the reason for this.
+  if (!G->hasNodeForValue(IndF))
+    return false;
+
+  const DSNodeHandle &NH = G->getNodeForValue(IndF);
+
+  StringRef Attr;
+  for (auto It : G->getDSNodeAttr()) {
+    const DSNode *N = It.first;
+    const DSNodeHandle &AttrNH = N->getLink(0);
+    assert(!AttrNH.isNull());
+    if (AttrNH.getNode() == NH.getNode())
+      Attr = It.second;
+  }
+
+  assert(!Attr.empty());
+  if (!F->getName().endswith(Attr))
+    return false;
+
   //
   // We've done all the checks we've cared to do.  The function F can be called
   // from this call site.
@@ -1600,7 +1632,7 @@ void DSGraph::buildCallGraph(DSCallGraph& DCG, std::vector<const Function*>& Glo
       //
       for (std::vector<const Function*>::iterator Fi = MaybeTargets.begin(),
            Fe = MaybeTargets.end(); Fi != Fe; ++Fi)
-        if (!filter || functionIsCallable(CS, *Fi))
+        if (!filter || functionIsCallable(CS, *Fi, this))
           DCG.insert(CS, *Fi);
         else
           ++NumFiltered;
@@ -1609,7 +1641,7 @@ void DSGraph::buildCallGraph(DSCallGraph& DCG, std::vector<const Function*>& Glo
         CallSite MCS = *I;
         for (std::vector<const Function*>::iterator Fi = MaybeTargets.begin(),
              Fe = MaybeTargets.end(); Fi != Fe; ++Fi)
-          if (!filter || functionIsCallable(MCS, *Fi))
+          if (!filter || functionIsCallable(MCS, *Fi, this))
             DCG.insert(MCS, *Fi);
           else
             ++NumFiltered;
@@ -1641,7 +1673,7 @@ void DSGraph::buildCompleteCallGraph(DSCallGraph& DCG,
     //
     for (std::vector<const Function*>::iterator Fi = MaybeTargets.begin(),
          Fe = MaybeTargets.end(); Fi != Fe; ++Fi)
-      if (!filter || functionIsCallable(CS, *Fi))
+      if (!filter || functionIsCallable(CS, *Fi, this))
         DCG.insert(CS, *Fi);
       else
         ++NumFiltered;
@@ -1651,7 +1683,7 @@ void DSGraph::buildCompleteCallGraph(DSCallGraph& DCG,
       CallSite MCS = *I;
       for (std::vector<const Function*>::iterator Fi = MaybeTargets.begin(),
            Fe = MaybeTargets.end(); Fi != Fe; ++Fi) {
-        if (!filter || functionIsCallable(MCS, *Fi))
+        if (!filter || functionIsCallable(MCS, *Fi, this))
           DCG.insert(MCS, *Fi);
         else
           ++NumFiltered;

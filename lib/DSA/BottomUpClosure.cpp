@@ -148,7 +148,7 @@ applyCallsiteFilter(const DSCallSite &DCS, FuncSet &Callees) {
   FuncSet::iterator I = Callees.begin();
   CallSite CS = DCS.getCallSite();
   while (I != Callees.end()) {
-    if (functionIsCallable(CS, *I)) {
+    if (functionIsCallable(CS, *I, getDSGraph(*CS.getCaller()))) {
       ++I;
     } else {
       I = Callees.erase(I);

@@ -208,6 +208,8 @@ public:
   // map.
   typedef std::multimap<DSNodeHandle, const DSNode*> InvNodeMapTy;
   typedef std::list<DSCallSite> FunctionListTy;
+
+  typedef std::map<const DSNode*, StringRef> DSNodeAttrMapTy;
 private:
   DSGraph *GlobalsGraph;   // Pointer to the common graph of global objects
 
@@ -252,6 +254,8 @@ private:
   const DataLayout &TD;
 
   SuperSet<Type*>& TypeSS;
+
+  DSNodeAttrMapTy DSNodeAttr;
 
   void operator=(const DSGraph &); // DO NOT IMPLEMENT
   DSGraph(const DSGraph&);         // DO NOT IMPLEMENT
@@ -468,6 +472,9 @@ public:
   /// void.
   DSNode *addObjectToGraph(Value *Ptr, bool UseDeclaredType = true);
 
+  const DSNodeAttrMapTy &getDSNodeAttr() const {
+    return DSNodeAttr;
+  }
 
   /// print - Print a dot graph to the specified ostream...
   ///
@@ -707,7 +714,7 @@ public:
 //  false - The function F cannot be called by the call site.
 //
 bool
-functionIsCallable (ImmutableCallSite CS, const Function* F);
+functionIsCallable (ImmutableCallSite CS, const Function* F, const DSGraph *G);
 
 } // End llvm namespace
 
