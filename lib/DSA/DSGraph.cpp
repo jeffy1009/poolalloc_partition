@@ -55,6 +55,10 @@ namespace {
          cl::desc("Don't filter call sites based on number of arguments."),
          cl::Hidden,
          cl::init(false));
+  static cl::opt<bool> DSACallNumArgsExact("dsa-filter-numargs-exact",
+         cl::desc("Filter call sites based on exact number of arguments."),
+         cl::Hidden,
+         cl::init(false));
   static cl::opt<bool> noDSACallVA("dsa-no-filter-vararg",
          cl::desc("Don't filter call sites based on vararg presense"),
          cl::Hidden,
@@ -1549,6 +1553,10 @@ llvm::functionIsCallable (ImmutableCallSite CS, const Function* F,
       return false;
     }
   }
+
+  if (DSACallNumArgsExact)
+    if(CS.arg_size() != F->arg_size())
+      return false;
 
   const Value *IndF = CS.getCalledValue();
   // TODO: there are some cases where CS is not actually in the current function.
