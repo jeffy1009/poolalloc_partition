@@ -287,7 +287,7 @@ public:
   CompleteBUDataStructures(char & CID = ID, 
                            const char* name = "dsa-cbu", 
                            const char* printname = "cbu.")
-    : BUDataStructures(CID, name, printname, false) {}
+    : BUDataStructures(CID, name, printname, true) {}
   ~CompleteBUDataStructures() { releaseMemory(); }
 
   virtual bool runOnModule(Module &M);
