@@ -1621,12 +1621,16 @@ void DSGraph::buildCallGraph(DSCallGraph& DCG, std::vector<const Function*>& Glo
       CallSite CS = ii->getCallSite();
       std::vector<const Function*> MaybeTargets;
 
-      if(ii->getCalleeNode()->isIncompleteNode())
-        continue;
+      // TODO, FIXME: We assume that call targets are specified by the user of
+      // partition-taint.
+
+      // if(ii->getCalleeNode()->isIncompleteNode())
+      //   continue;
       //
       // Get the list of known targets of this function.
       //
-      ii->getCalleeNode()->addFullFunctionList(MaybeTargets);
+      // ii->getCalleeNode()->addFullFunctionList(MaybeTargets);
+      MaybeTargets = GlobalFunctionList;
 
       //
       // Ensure that the call graph at least knows about (has a record of) this

@@ -187,9 +187,9 @@ getAllCallees(const DSCallSite &CS, FuncSet &Callees) {
     if (!CS.getCalleeNode()->isExternFuncNode()) {
       // Get all the callees for this callsite
       FuncSet TempCallees;
-      CS.getCalleeNode()->addFullFunctionSet(TempCallees);
+      // CS.getCalleeNode()->addFullFunctionSet(TempCallees);
       // FIXME: see the above FIXME. Add all address taken functions
-      if (TempCallees.empty())
+      // if (TempCallees.empty())
         TempCallees.insert(GlobalFunctionList.begin(), GlobalFunctionList.end());
       // Filter out the ones that are invalid targets with respect
       // to this particular callsite.
