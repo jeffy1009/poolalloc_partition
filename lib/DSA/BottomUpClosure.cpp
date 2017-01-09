@@ -177,20 +177,23 @@ getAllCallees(const DSCallSite &CS, FuncSet &Callees) {
   if (CS.isDirectCall()) {
     if (!CS.getCalleeFunc()->isDeclaration())
       Callees.insert(CS.getCalleeFunc());
-  } else { // if (CS.getCalleeNode()->isCompleteNode()) {
+  } else if (DSACallExplicitIndTargets || CS.getCalleeNode()->isCompleteNode()) {
     // TODO, FIXME: Since we use bottom-up DSA only, function pointer passed
     // as an argument will be incomplete. But even if we use top-down DSA,
     // indirect call targets will never be accurate.
-    // We assume that the user will provide accurate indirect call target
-    // information, and proceed here even if the node is incomplete.
+    // If DSACallExplicitIndTargets is set, We assume that the user will provide
+    // accurate indirect call target information, and proceed here even if the
+    // node is incomplete.
     // Get all callees.
     if (!CS.getCalleeNode()->isExternFuncNode()) {
       // Get all the callees for this callsite
       FuncSet TempCallees;
-      // CS.getCalleeNode()->addFullFunctionSet(TempCallees);
+      if (!DSACallExplicitIndTargets) {
+        CS.getCalleeNode()->addFullFunctionSet(TempCallees);
       // FIXME: see the above FIXME. Add all address taken functions
-      // if (TempCallees.empty())
+      } else {
         TempCallees.insert(GlobalFunctionList.begin(), GlobalFunctionList.end());
+      }
       // Filter out the ones that are invalid targets with respect
       // to this particular callsite.
       applyCallsiteFilter(CS, TempCallees);
@@ -674,8 +677,9 @@ void BUDataStructures::calculateGraph(DSGraph* Graph) {
     // an indirect call site, its calleeNode is complete, and we can
     // resolve this particular call site.
     // TODO, FIXME: see getAllCallees()
-    // assert((CS.isDirectCall() || CS.getCalleeNode()->isCompleteNode())
-    //    && "Resolving an indirect incomplete call site");
+    assert((DSACallExplicitIndTargets || CS.isDirectCall()
+            || CS.getCalleeNode()->isCompleteNode())
+       && "Resolving an indirect incomplete call site");
 
     if (CS.isIndirectCall()) {
         ++NumIndResolved;

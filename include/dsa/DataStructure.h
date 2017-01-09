@@ -42,6 +42,8 @@ class DSNodeHandle;
 FunctionPass *createDataStructureStatsPass();
 FunctionPass *createDataStructureGraphCheckerPass();
 
+extern cl::opt<bool> DSACallExplicitIndTargets;
+
 class DataStructures : public ModulePass {
   typedef std::map<const Function*, DSGraph*> DSInfoTy;
 
@@ -287,7 +289,7 @@ public:
   CompleteBUDataStructures(char & CID = ID, 
                            const char* name = "dsa-cbu", 
                            const char* printname = "cbu.")
-    : BUDataStructures(CID, name, printname, true) {}
+    : BUDataStructures(CID, name, printname, DSACallExplicitIndTargets) {}
   ~CompleteBUDataStructures() { releaseMemory(); }
 
   virtual bool runOnModule(Module &M);

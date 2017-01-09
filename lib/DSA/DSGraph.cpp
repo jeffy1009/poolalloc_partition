@@ -69,6 +69,12 @@ namespace {
          cl::init(false));
 }
 
+cl::opt<bool> llvm::DSACallExplicitIndTargets("dsa-filter-explicit-targets",
+       cl::desc("Filter call sites based on explicit indirect call targets provided"
+                " with source code annotation."),
+       cl::Hidden,
+       cl::init(false));
+
 extern cl::opt<bool> TypeInferenceOptimize;
 
 // Determines if the DSGraph 'should' have a node for a given value.
@@ -1558,29 +1564,30 @@ llvm::functionIsCallable (ImmutableCallSite CS, const Function* F,
     if(CS.arg_size() != F->arg_size())
       return false;
 
-  const Value *IndF = CS.getCalledValue();
-  // TODO: there are some cases where CS is not actually in the current function.
-  // Then we cannot find a node for the value in this DSGraph.
-  // CS is put into AuxFunctionCalls when callees are inlined.
-  // Find out the reason for this.
-  if (!G->hasNodeForValue(IndF))
-    return false;
+  if (DSACallExplicitIndTargets) {
+    const Value *IndF = CS.getCalledValue();
+    // TODO: there are some cases where CS is not actually in the current function.
+    // Then we cannot find a node for the value in this DSGraph.
+    // CS is put into AuxFunctionCalls when callees are inlined.
+    // Find out the reason for this.
+    if (!G->hasNodeForValue(IndF))
+      return false;
 
-  const DSNodeHandle &NH = G->getNodeForValue(IndF);
+    const DSNodeHandle &NH = G->getNodeForValue(IndF);
 
-  StringRef Attr;
-  for (auto It : G->getDSNodeAttr()) {
-    const DSNode *N = It.first;
-    const DSNodeHandle &AttrNH = N->getLink(0);
-    assert(!AttrNH.isNull());
-    if (AttrNH.getNode() == NH.getNode())
-      Attr = It.second;
+    StringRef Attr;
+    for (auto It : G->getDSNodeAttr()) {
+      const DSNode *N = It.first;
+      const DSNodeHandle &AttrNH = N->getLink(0);
+      assert(!AttrNH.isNull());
+      if (AttrNH.getNode() == NH.getNode())
+        Attr = It.second;
+    }
+
+    assert(!Attr.empty());
+    if (!F->getName().endswith(Attr))
+      return false;
   }
-
-  assert(!Attr.empty());
-  if (!F->getName().endswith(Attr))
-    return false;
-
   //
   // We've done all the checks we've cared to do.  The function F can be called
   // from this call site.
@@ -1621,16 +1628,17 @@ void DSGraph::buildCallGraph(DSCallGraph& DCG, std::vector<const Function*>& Glo
       CallSite CS = ii->getCallSite();
       std::vector<const Function*> MaybeTargets;
 
-      // TODO, FIXME: We assume that call targets are specified by the user of
-      // partition-taint.
-
-      // if(ii->getCalleeNode()->isIncompleteNode())
-      //   continue;
+      // TODO, FIXME: if DSACallExplicitIndTargets is set, We assume that call
+      // targets are specified by the user of partition-taint.
+      if(!DSACallExplicitIndTargets && ii->getCalleeNode()->isIncompleteNode())
+        continue;
       //
       // Get the list of known targets of this function.
       //
-      // ii->getCalleeNode()->addFullFunctionList(MaybeTargets);
-      MaybeTargets = GlobalFunctionList;
+      if (!DSACallExplicitIndTargets)
+        ii->getCalleeNode()->addFullFunctionList(MaybeTargets);
+      else
+        MaybeTargets = GlobalFunctionList;
 
       //
       // Ensure that the call graph at least knows about (has a record of) this
