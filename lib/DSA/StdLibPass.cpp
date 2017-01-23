@@ -555,7 +555,7 @@ StdLibDataStructures::runOnModule (Module &M) {
   // Get the results from the local pass.
   //
   init (&getAnalysis<LocalDataStructures>(), true, true, false, false);
-  AllocWrappersAnalysis = &getAnalysis<AllocIdentify>();
+  // AllocWrappersAnalysis = &getAnalysis<AllocIdentify>();
 
   //
   // Fetch the DSGraphs for all defined functions within the module.
@@ -602,7 +602,7 @@ StdLibDataStructures::runOnModule (Module &M) {
         if (F->isDeclaration()) {
           processFunction(x, F);
         }
-
+    /*
     std::set<std::string>::iterator ai = AllocWrappersAnalysis->alloc_begin();
     std::set<std::string>::iterator ae = AllocWrappersAnalysis->alloc_end();
     int x;
@@ -627,7 +627,7 @@ StdLibDataStructures::runOnModule (Module &M) {
       if(Function* F = M.getFunction(*ai))
         processFunction(x, F);
     }
-
+    */
     //
     // Merge return values and checked pointer values for SAFECode run-time
     // checks.
