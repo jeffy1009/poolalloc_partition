@@ -1140,8 +1140,6 @@ bool GraphBuilder::visitIntrinsic(CallSite CS, Function *F) {
     assert(C->getNumOperands() == 1);
     ConstantDataSequential *CDS = cast<ConstantDataSequential>(C->getOperand(0));
     assert(CDS->isCString());
-    if (CDS->getAsCString().equals("sensitive"))
-      assert(0);
 
     auto &DSNodeAttr = const_cast<DSGraph::DSNodeAttrMapTy&>(G.getDSNodeAttr());
     DSNodeAttr[Ptr.getNode()] = CDS->getAsCString();
