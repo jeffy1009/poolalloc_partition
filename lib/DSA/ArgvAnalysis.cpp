@@ -73,7 +73,8 @@ void ArgvAnalysis::handleFunction(Function *F, int ArgNum) {
 
 bool ArgvAnalysis::runOnModule(llvm::Module& M) {
   Function *Main = M.getFunction("main");
-  handleFunction(Main, 1);
+  if (Main->arg_size() > 0)
+    handleFunction(Main, 1);
 
   for (Value *V : ArgvGVs) {
     for (User *U : V->users()) {
