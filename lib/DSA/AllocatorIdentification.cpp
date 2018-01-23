@@ -60,7 +60,9 @@ bool AllocIdentify::flowsFrom(Value *Dest,Value *Src) {
   return false;
 }
 
-bool isNotStored(Value *V) {
+bool isNotStored(Value *V, SmallPtrSetImpl<Value*> &Visited) {
+  if (!Visited.insert(V).second)
+    return true;
   // check that V is not stored to a location that is accessible outside this fn
   for(Value::user_iterator ui = V->user_begin(), ue = V->user_end();
       ui != ue; ++ui) {
@@ -71,13 +73,13 @@ bool isNotStored(Value *V) {
     if(isa<ReturnInst>(*ui))
       continue;
     if(BitCastInst *BI = dyn_cast<BitCastInst>(*ui)) {
-      if(isNotStored(BI))
+      if(isNotStored(BI, Visited))
         continue;
       else
         return false;
     }
     if(PHINode *PN = dyn_cast<PHINode>(*ui)) {
-      if(isNotStored(PN))
+      if(isNotStored(PN, Visited))
         continue;
       else
         return false;
@@ -88,7 +90,9 @@ bool isNotStored(Value *V) {
   return true;
 }
 
-AllocIdentify::AllocIdentify() : ModulePass(ID) {}
+AllocIdentify::AllocIdentify() : ModulePass(ID) {
+  initializeLoopInfoWrapperPassPass(*PassRegistry::getPassRegistry());
+}
 AllocIdentify::~AllocIdentify() {}
 
 bool AllocIdentify::runOnModule(Module& M) {
@@ -137,9 +141,10 @@ bool AllocIdentify::runOnModule(Module& M) {
             }
             // if true for all return add to list of allocators
           }
-          if(isWrapper)
-            isWrapper = isWrapper && isNotStored(CI);
           if(isWrapper) {
+            SmallPtrSet<Value *, 8> Visited;
+            isWrapper = isWrapper && isNotStored(CI, Visited);
+          } if(isWrapper) {
             changed = (allocators.find(WrapperF->getName()) == allocators.end());
             if(changed) {
               ++numAllocators;
